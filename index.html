@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>เกมตอบคำถาม</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at top left, rgba(255,255,255,0.14), transparent 26%),
+                  radial-gradient(circle at bottom right, rgba(255,255,255,0.08), transparent 20%),
+                  linear-gradient(135deg, #06172f 0%, #0b2a58 40%, #184b8b 100%);
+      color: #eef3ff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+    .container {
+      position: relative;
+      width: 100%;
+      max-width: 980px;
+      background: rgba(4, 18, 46, 0.96);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 32px;
+      box-shadow: 0 32px 90px rgba(0,0,0,0.35);
+      padding: 32px;
+      backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+    .container::before {
+      content: '';
+      position: absolute;
+      top: -32px;
+      right: -32px;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 55%);
+      pointer-events: none;
+      filter: blur(12px);
+    }
+    h1, h2 {
+      margin: 0 0 14px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: clamp(2.1rem, 3vw, 2.8rem);
+      color: #ffffff;
+      text-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+    h2 {
+      font-size: 1.45rem;
+      color: #dce9ff;
+    }
+    .section {
+      margin-bottom: 24px;
+    }
+    .input-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    input[type="text"] {
+      flex: 1;
+      min-width: 220px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 14px;
+      padding: 16px 18px;
+      font-size: 16px;
+      color: #0f1f3f;
+      background: rgba(255,255,255,0.95);
+    }
+    input[type="text"]::placeholder {
+      color: #7c89a6;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #ff8f61 0%, #ff5f6d 100%);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+      box-shadow: 0 16px 30px rgba(255,103,103,0.18);
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+      box-shadow: 0 20px 36px rgba(255,103,103,0.22);
+    }
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .card {
+      background: rgba(8, 23, 60, 0.94);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 26px;
+      padding: 28px;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.18);
+      position: relative;
+      overflow: hidden;
+    }
+    .card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 45%);
+      pointer-events: none;
+    }
+    .answers {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .answer-button {
+      padding: 18px 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: #edf3ff;
+      transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      text-align: left;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.35;
+      letter-spacing: 0.01em;
+    }
+    .answer-button:hover:not(:disabled) {
+      transform: translateY(-3px);
+      background: rgba(255,255,255,0.14);
+      box-shadow: 0 18px 32px rgba(0,0,0,0.16);
+    }
+    .answer-button.correct {
+      background: linear-gradient(135deg, rgba(72, 187, 120, 0.95), rgba(36, 165, 95, 0.92));
+      border-color: rgba(72, 187, 120, 0.95);
+      color: #fff;
+    }
+    .answer-button.wrong {
+      background: linear-gradient(135deg, rgba(242, 101, 101, 0.95), rgba(210, 75, 75, 0.92));
+      border-color: rgba(242, 101, 101, 0.95);
+      color: #fff;
+    }
+    .answer-button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(103, 127, 255, 0.25);
+    }
+    .control-button {
+      background: linear-gradient(135deg, #6b8cff 0%, #4c5fff 100%);
+      box-shadow: 0 12px 24px rgba(84, 101, 255, 0.24);
+    }
+    .control-button.active {
+      background: linear-gradient(135deg, #3bd4b4 0%, #0bb875 100%);
+    }
+    .progress-bar {
+      margin-top: 22px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    #progressFill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #ffd664, #ff8e7a);
+      transition: width 0.45s ease;
+      box-shadow: inset 0 0 12px rgba(255,255,255,0.18);
+    }
+    .timer-display {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 12px 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.16);
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .timer-low {
+      background: linear-gradient(135deg, rgba(255,72,72,0.95), rgba(255,117,103,0.9));
+      border-color: rgba(255,108,108,0.8);
+    }
+    .button-icon {
+      margin-right: 8px;
+      font-size: 1rem;
+    }
+    .fade-in {
+      animation: fadeIn 0.6s ease;
+    }
+    .glow {
+      box-shadow: 0 0 20px rgba(255,255,255,0.22), inset 0 0 0 1px rgba(255,255,255,0.12);
+    }
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .score-row strong {
+      color: #fff;
+      font-size: 1rem;
+    }
+    .score-row:hover {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,0.1);
+    }
+    .score-row:nth-child(1) {
+      background: linear-gradient(135deg, rgba(255,215,120,0.22), rgba(255,215,120,0.1));
+      border-color: rgba(255,224,130,0.22);
+    }
+    .score-row:nth-child(2) {
+      background: linear-gradient(135deg, rgba(192,192,255,0.18), rgba(192,192,255,0.09));
+      border-color: rgba(190,190,255,0.16);
+    }
+    .score-row:nth-child(3) {
+      background: linear-gradient(135deg, rgba(255,183,128,0.18), rgba(255,183,128,0.09));
+      border-color: rgba(255,190,145,0.16);
+    }
+    .leader-time {
+      margin-left: 10px;
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.68);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .scoreboard {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .file-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .hidden {
+      display: none;
+    }
+    .status {
+      margin-top: 14px;
+      font-size: 15px;
+      color: #d9e8ff;
+      line-height: 1.65;
+    }
+    .status strong {
+      color: #fff;
+    }
+    .footer {
+      font-size: 14px;
+      opacity: 0.78;
+      margin-top: 14px;
+      color: #cfd8ff;
+    }
+    .game-top {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+    .game-status-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      gap: 14px;
+      width: 100%;
+    }
+    .status-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 8px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 14px 28px rgba(0,0,0,0.12);
+      min-height: 96px;
+    }
+    .status-card strong {
+      color: #fff;
+      font-size: 1.15rem;
+      line-height: 1.2;
+    }
+    .status-card .label {
+      color: rgba(215, 231, 255, 0.75);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .game-title {
+      min-width: 280px;
+    }
+    .game-title p {
+      margin: 10px 0 0;
+      font-size: 1rem;
+      line-height: 1.6;
+      color: rgba(223, 233, 255, 0.95);
+    }
+    @media (max-width: 940px) {
+      .game-status-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .answers {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 620px) {
+      .game-status-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 660px) {
+      .container {
+        padding: 24px 18px 24px;
+      }
+      .card {
+        padding: 22px;
+      }
+      button {
+        width: 100%;
+      }
+      .input-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="section">
+      <h1>🎮 เกมตอบคำถาม</h1>
+      <p>กรอกชื่อของคุณแล้วเริ่มเล่นเพื่อสะสมคะแนนและบันทึกสถิติในกระดานคะแนน</p>
+    </div>
+
+    <div class="section card" id="entrySection">
+      <p class="status">กรอกชื่อของคุณแล้วกดเริ่มเพื่อเข้าสู่เกมคำถามชีววิทยา คุณจะมีเวลา 30 วินาทีต่อคำถามและได้คะแนนโบนัสจากความเร็วในการตอบ</p>
+      <div class="input-row">
+        <input type="text" id="playerName" placeholder="ชื่อของคุณ" autocomplete="off" />
+        <button id="startButton"><span class="button-icon">▶️</span>เริ่มเกม</button>
+      </div>
+      <div class="status" id="entryStatus"></div>
+    </div>
+
+    <div class="section card hidden" id="gameSection">
+      <div class="game-top">
+        <div class="game-status-row hidden" id="statusPanel">
+          <div class="status-card">
+            <span class="label">👤 ผู้เล่น</span>
+            <strong id="currentPlayer">-</strong>
+          </div>
+          <div class="status-card">
+            <span class="label">🏆 คะแนน</span>
+            <strong id="currentScore">0</strong>
+          </div>
+          <div class="status-card">
+            <span class="label">📌 คำถาม</span>
+            <strong><span id="currentIndex">0</span> / <span id="totalQuestions">0</span></strong>
+          </div>
+          <div class="status-card">
+            <span class="label">⏱ เวลา</span>
+            <strong class="timer-display" id="timerText">00:00</strong>
+          </div>
+        </div>
+        <div class="game-title">
+          <h2 id="questionTitle">❓ คำถาม</h2>
+          <p id="questionText">...</p>
+        </div>
+      </div>
+      <div class="progress-bar">
+        <div id="progressFill"></div>
+      </div>
+      <div class="answers" id="answersContainer"></div>
+      <div class="status" id="feedbackText"></div>
+      <div class="status" id="explanationText"></div>
+      <div style="margin-top: 22px; text-align: right;">
+        <button id="nextButton" disabled><span class="button-icon">➡️</span>คำถามถัดไป</button>
+      </div>
+    </div>
+
+    <div class="section card hidden" id="summarySection">
+      <h2>📋 สรุปผล</h2>
+      <p id="summaryText"></p>
+      <div style="margin-top: 16px; text-align: right;">
+        <button id="restartButton"><span class="button-icon">↻</span>เล่นอีกครั้ง</button>
+      </div>
+    </div>
+
+    <div class="section card">
+      <h2>🏅 กระดานคะแนน</h2>
+      <div class="scoreboard" id="leaderboard"></div>
+      <div class="file-actions">
+        <button id="saveFileButton" class="control-button">💾 บันทึกคะแนนเป็นไฟล์</button>
+        <button id="loadFileButton" class="control-button">📂 โหลดคะแนนจากไฟล์</button>
+      </div>
+      <input type="file" id="filePicker" class="hidden" accept="application/json" />
+      <div class="footer">คะแนนจะถูกเก็บไว้บนเครื่องของคุณ (Local Storage) และสามารถบันทึก/โหลดเป็นไฟล์ JSON ได้</div>
+    </div>
+  </div>
+
+  <script>
+    const quizData = [
+      {
+        question: 'สิ่งมีชีวิตเซลล์เดียวเช่น พารามีเซียม ไม่มีเซลล์ประสาท แต่สามารถรับรู้และควบคุมการพัดโบกของซิเลียเพื่อเคลื่อนที่ไปยังสิ่งเร้าได้ โครงสร้างใดทำหน้าที่ประสานงานดังกล่าว?',
+        answers: ['ร่างแหประสาท (Nerve net)', 'เส้นใยประสานงาน (Coordinating fiber)', 'ปมประสาทส่วนหัว (Nerve ganglion)', 'เส้นประสาทตามขวาง (Transverse nerve)'],
+        correct: 1,
+        explanation: 'พารามีเซียมเป็นสิ่งมีชีวิตเซลล์เดียวจึงยังไม่มีเซลล์ประสาท แต่มีเส้นใยประสานงานอยู่ใต้โคนซิเลีย ทำหน้าที่ควบคุมและประสานงานการพัดโบกของซิเลียให้เคลื่อนที่ไปในทิศทางเดียวกันได้'
+      },
+      {
+        question: 'ข้อใดอธิบายเกี่ยวกับการรับรู้และการตอบสนองของ ฟองน้ำ ได้ถูกต้องที่สุด?',
+        answers: ['มีเซลล์ประสาทประสานงานกันเป็นร่างแหทั่วตัว', 'เซลล์แต่ละเซลล์สามารถรับรู้และตอบสนองได้เอง แต่ไม่มีเซลล์ประสาทประสานงานระหว่างเซลล์', 'มีปมประสาทขนาดเล็กทำหน้าที่เป็นสมองส่วนหน้า', 'มีเส้นประสาทขนาดใหญ่ทางด้านท้องควบคุมการหดตัวของลำตัว'],
+        correct: 1,
+        explanation: 'ฟองน้ำเป็นสัตว์กลุ่มแรกๆ ที่มีวิวัฒนาการต่ำที่สุดและยังไม่มีเนื้อเยื่อที่แท้จริง จึงไม่มีเซลล์ประสาทเฉพาะที่ทำหน้าที่ประสานงาน ดังนั้นแต่ละเซลล์จึงรับรู้และตอบสนองต่อสิ่งเร้าแยกจากกัน'
+      },
+      {
+        question: 'ระบบประสาทของไฮดรามีลักษณะเป็นร่างแหประสาท (Nerve net) ข้อใดกล่าวถูกต้องเกี่ยวกับการนำกระแสประสาทของไฮดราเมื่อถูกสิ่งเร้ากระตุ้น?',
+        answers: ['เกิดกระแสประสาทเคลื่อนไปตามเซลล์ประสาทที่สานกันเป็นร่างแหจากจุดที่ถูกกระตุ้นและกระจายไปทั่วทั้งตัว', 'กระแสประสาทจะเคลื่อนที่จากส่วนท้ายไปประมวลผลที่ส่วนหัวอย่างรวดเร็ว', 'กระแสประสาทจะเคลื่อนที่ผ่านเส้นประสาทขนาดใหญ่ด้านท้องเพียงทิศทางเดียว', 'กระแสประสาทจะถูกส่งไปยังท่อประสาทด้านหลังก่อนส่งไปที่หนวด'],
+        correct: 0,
+        explanation: 'ระบบร่างแหประสาทของไฮดราไม่มีศูนย์กลางประมวลผล (ไม่มีสมองหรือปมประสาท) เมื่อมีสิ่งเร้ามากระตุ้น กระแสประสาทจะแผ่กระจายออกจากจุดกระตุ้นไปทั่วทุกทิศทางอย่างช้าๆ'
+      },
+      {
+        question: 'ระบบประสาทแบบขั้นบันได (Ladder type) พบได้ในสัตว์ชนิดใด และมีลักษณะเด่นอย่างไร?',
+        answers: ['ไฮดรา - มีการเชื่อมโยงของเซลล์ประสาทกระจายทั่วตัว', 'พลานาเรีย - มีปมประสาทที่หัวและมีเส้นประสาทขนาดใหญ่ยาวขนานไปตามลำตัว เชื่อมกันด้วยเส้นประสาทตามขวาง', 'ไส้เดือนดิน - มีปมประสาทขนาดใหญ่ด้านหลังและแยกออกเป็นวงแหวนรอบลำตัว', 'หอย - มีร่างแหประสาทรอบๆ เนื้อเยื่อแมนเทิลและเท้า'],
+        correct: 1,
+        explanation: 'พลานาเรีย (หนอนตัวแบน) มีปมประสาทที่หัว (เสมือนสมอง) และมีเส้นประสาทคู่ขนาดยาวขนาบลำตัว โดยมีเส้นประสาทตามขวางเชื่อมระหว่างสองข้าง ทำให้ดูคล้ายขั้นบันได ซึ่งจัดเป็นระบบประสาทที่มีสมมาตรซ้ายขวาชัดเจน'
+      },
+      {
+        question: 'สัตว์ไม่มีกระดูกสันหลังในข้อใดที่มีวิวัฒนาการของระบบประสาทเริ่มเด่นชัดในเรื่อง การมีปมประสาทแยกอยู่เป็นระยะๆ ตามความยาวของปล้องลำตัว ร่วมกับมีเส้นประสาทขนาดใหญ่ด้านท้อง?',
+        answers: ['พารามีเซียมและฟองน้ำ', 'ไฮดราและพลานาเรีย', 'ไส้เดือนดิน แมลง และกุ้ง', 'หอยสองฝาและหมึกกล้วย'],
+        correct: 2,
+        explanation: 'สัตว์กลุ่มนี้มีลำตัวเป็นปล้อง (Segmented) วิวัฒนาการจึงพัฒนาให้มีสมองอยู่ด้านหัว และมีเส้นประสาทขนาดใหญ่ด้านท้อง (Ventral nerve cord) ซึ่งมีปมประสาท (Ganglia) จัดเรียงเป็นระยะๆ ตามปล้องลำตัวเพื่อควบคุมแต่ละปล้องแยกกัน'
+      },
+      {
+        question: 'จากโครงสร้างระบบประสาทของสัตว์กลุ่มหอยและหมึก ปมประสาท (Nerve ganglion) มีการกระจายตัวอยู่เพื่อควบคุมบริเวณสำคัญใดบ้าง?',
+        answers: ['บริเวณหัว อวัยวะภายใน และบริเวณเท้า', 'บริเวณหนวดและเปลือกหอยเท่านั้น', 'กระจายรอบวงแหวนทางเดินอาหารเพียงอย่างเดียว', 'ตลอดแนวเส้นประสาทด้านหลังลำตัว'],
+        correct: 0,
+        explanation: 'ระบบประสาทของหอยและหมึกประกอบด้วยปมประสาทหลักๆ 3 ชุดที่แยกกันทำหน้าที่ควบคุมบริเวณหัว บริเวณเท้า (ที่ใช้ในการเคลื่อนที่) และบริเวณอวัยวะภายใน โดยทำงานประสานกันผ่านเส้นประสาท'
+      },
+      {
+        question: 'โครงสร้างใดในระบบประสาทของพลานาเรียที่รวมกลุ่มกันหนาแน่นอยู่บริเวณส่วนหัว และทำหน้าที่สั่งการเสมือนเป็นศูนย์กลางหรือสมองส่วนต้น?',
+        answers: ['เส้นประสาทขนาดใหญ่ (Nerve cord)', 'ปมประสาท (Nerve ganglion)', 'ร่างแหประสาท (Nerve net)', 'เส้นประสาทตามขวาง (Transverse nerve)'],
+        correct: 1,
+        explanation: 'พลานาเรียเริ่มมีปรากฏการณ์การรวมกลุ่มของเซลล์ประสาทไปอยู่ที่ส่วนหน้าของร่างกาย (Cephalization) เรียกว่า ปมประสาทส่วนหัว ซึ่งทำหน้าที่เป็นศูนย์กลางรับรู้และสั่งการเบื้องต้นเสมือนสมอง'
+      },
+      {
+        question: 'เมื่อเรียงลำดับวิวัฒนาการของระบบประสาทในสัตว์ไม่มีกระดูกสันหลัง จากต่ำไปสูง ข้อใดจัดลำดับโครงสร้างหลักได้ถูกต้อง?',
+        answers: ['ขั้นบันได -> ร่างแห -> ปมประสาทตามปล้องร่วมกับเส้นประสาทด้านท้อง', 'ไม่มีเซลล์ประสาท -> ร่างแหประสาท -> ระบบประสาทแบบขั้นบันได -> ปมประสาทส่วนหัวร่วมกับเส้นประสาทด้านท้อง', 'ร่างแห -> ไม่มีเซลล์ประสาท -> ปมประสาทส่วนหัว -> เส้นประสาทด้านหลัง', 'ระบบประสาทแบบขั้นบันได -> ปมประสาทสามชุด -> ร่างแหประสาท'],
+        correct: 1,
+        explanation: 'เริ่มจากฟองน้ำ (ไม่มีเซลล์ประสาท) -> ไฮดรา (ร่างแหประสาท) -> พลานาเรีย (ระบบประสาทแบบขั้นบันได) -> ไส้เดือนดิน/แมลง (มีปมประสาทส่วนหัวเป็นสมองและเส้นประสาทด้านท้อง) ซึ่งเป็นไปตามลำดับวิวัฒนาการจากซับซ้อนน้อยไปมาก'
+      },
+      {
+        question: 'ระบบประสาทส่วนกลาง (Central Nervous System: CNS) ของสัตว์มีกระดูกสันหลังรวมถึงมนุษย์ ประกอบด้วยอวัยวะสำคัญในข้อใด?',
+        answers: ['สมองและเส้นประสาทสมอง', 'สมองและไขสันหลัง (Brain and Spinal cord)', 'ไขสันหลังและปมประสาท', 'เส้นประสาทสมองและเส้นประสาทไขสันหลัง'],
+        correct: 1,
+        explanation: 'ในสัตว์มีกระดูกสันหลัง ท่อประสาทกลวงด้านหลังจะพัฒนาไปเป็นสมองและไขสันหลัง ซึ่งทำหน้าที่เป็นศูนย์กลางหลักในการประมวลผลและสั่งการของระบบประสาทส่วนกลาง (CNS)'
+      },
+      {
+        question: 'เส้นประสาท (Nerve) และปมประสาท (Nerve ganglion) ที่แยกออกมาจากสมองและไขสันหลังในสัตว์มีกระดูกสันหลัง ถูกจัดอยู่ในระบบประสาทประเภทใด?',
+        answers: ['ระบบประสาทส่วนกลาง (CNS)', 'ระบบประสาทรอบนอก (Peripheral Nervous System: PNS)', 'ระบบต่อมไร้ท่อ (Endocrine system)', 'ระบบร่างแหประสาทส่วนปลาย'],
+        correct: 1,
+        explanation: 'เส้นประสาทสมอง เส้นประสาทไขสันหลัง และปมประสาททั้งหมดที่กระจายอยู่ตามส่วนต่างๆ นอกสมองและไขสันหลัง จัดเป็นระบบประสาทรอบนอก (PNS) ทำหน้าที่รับสัญญาณเข้าและส่งคำสั่งออกไปยังอวัยวะปฏิบัติงาน'
+      },
+      {
+        question: 'ข้อใดแสดงความแตกต่างระหว่างเส้นประสาทหลักของแมลง (สัตว์ไม่มีกระดูกสันหลัง) และไขสันหลังของมนุษย์ (สัตว์มีกระดูกสันหลัง) ได้ถูกต้อง?',
+        answers: ['แมลงมีเส้นประสาทอยู่ทางด้านหลัง ส่วนมนุษย์มีไขสันหลังอยู่ทางด้านท้อง', 'แมลงมีเส้นประสาทขนาดใหญ่ทอดยาวอยู่ทางด้านท้อง (Ventral) ส่วนมนุษย์มีไขสันหลังอยู่ทางด้านหลัง (Dorsal)', 'ทั้งแมลงและมนุษย์มีเส้นประสาทหลักอยู่ทางด้านหลังเหมือนกันทั้งหมด', 'แมลงไม่มีสมองส่วนหัว มีแต่เส้นประสาทด้านท้อง ส่วนมนุษย์มีทั้งสมองและไขสันหลัง'],
+        correct: 1,
+        explanation: 'จุดต่างสำคัญของสัตว์ไม่มีกระดูกสันหลังชั้นสูง (เช่น แมลง ไส้เดือน) คือเส้นประสาทหลักจะอยู่ทางด้านท้องและเป็นเส้นตัน ส่วนสัตว์มีกระดูกสันหลังจะมีท่อประสาทกลวงอยู่ทางด้านหลัง (Dorsal) ซึ่งก็คือสมองและไขสันหลัง'
+      },
+      {
+        question: 'ในกรณีที่นักเรียน มองเห็นตัวโน้ตเพลงด้วยตา แล้วใช้นิ้วมือกดคีย์บอร์ดเปียโนตอบสนอง ข้อใดเรียงลำดับองค์ประกอบการรับรู้และการตอบสนองได้ถูกต้อง?',
+        answers: ['หน่วยรับความรู้สึก (ตา) -> เซลล์ประสาทสั่งการ -> หน่วยประมวลผล (สมอง) -> เซลล์ประสาทรับความรู้สึก -> หน่วยปฏิบัติงาน (นิ้วมือ)', 'หน่วยรับความรู้สึก (ตา) -> เซลล์ประสาทรับความรู้สึก -> หน่วยประมวลผล (สมอง) -> เซลล์ประสาทสั่งการ -> หน่วยปฏิบัติงาน (นิ้วมือ)', 'หน่วยปฏิบัติงาน (นิ้วมือ) -> เซลล์ประสาทสั่งการ -> หน่วยประมวลผล (สมอง) -> เซลล์ประสาทรับความรู้สึก -> หน่วยรับความรู้สึก (ตา)', 'หน่วยประมวลผล (สมอง) -> หน่วยรับความรู้สึก (ตา) -> เซลล์ประสาทสั่งการ -> เซลล์ประสาทรับความรู้สึก -> หน่วยปฏิบัติงาน (นิ้วมือ)'],
+        correct: 1,
+        explanation: 'ลำดับการทำงานของระบบประสาทจะเริ่มจาก สิ่งเร้า -> หน่วยรับความรู้สึก ส่งผ่าน -> เซลล์ประสาทรับความรู้สึก เข้าสู่ -> ศูนย์กลางประมวลผล (สมอง/ไขสันหลัง) ส่งคำสั่งผ่าน -> เซลล์ประสาทสั่งการ ออกไปที่ -> หน่วยปฏิบัติงาน (กล้ามเนื้อหรือต่อม) เพื่อตอบสนอง'
+      },
+      {
+        question: 'พิจารณาข้อความ: การทำงานร่วมกันระหว่างระบบประสาทและระบบต่อมไร้ท่อในการตอบสนองเมื่อวิ่งหนีสัตว์ประทุษร้าย ข้อใดกล่าวถึงคุณลักษณะการทำงานของทั้งสองระบบได้ถูกต้อง?',
+        answers: ['ระบบประสาทสั่งการทำให้กล้ามเนื้อหดตัวและเคลื่อนที่ได้อย่างรวดเร็ว ส่วนระบบต่อมไร้ท่อควบคุมการตอบสนองที่เกิดช้ากว่าแต่ส่งผลต่อเนื่องเป็นเวลานาน เช่น การเต้นของหัวใจ', 'ระบบต่อมไร้ท่อทำงานรวดเร็วและสิ้นสุดเร็วกว่าระบบประสาท', 'ทั้งสองระบบทำหน้าที่กระตุ้นกล้ามเนื้อลายให้หดตัวพร้อมๆ กันด้วยความเร็วที่เท่ากัน', 'ระบบประสาทจะทำหน้าที่ควบคุมเมื่อเริ่มต้นวิ่งเท่านั้น จากนั้นระบบต่อมไร้ท่อจะเข้ามาควบคุมแทนทั้งหมดโดยสิ้นเชิง'],
+        correct: 0,
+        explanation: 'ระบบประสาททำงานโดยใช้กระแสประสาทและสารสื่อประสาท จึงตอบสนองได้รวดเร็วทันทีท่วงทีแต่หมดผลเร็ว ส่วนระบบต่อมไร้ท่อหลั่งฮอร์โมนเข้าสู่กระแสเลือด ลำเลียงช้ากว่า แต่ส่งผลได้กว้างขวางและต่อเนื่องยาวนานกว่าเพื่อรักษาสภาพร่างกายให้พร้อมเผชิญเหตุ'
+      },
+      {
+        question: 'ข้อใดคือคุณสมบัติหลักของระบบประสาทในสัตว์มีกระดูกสันหลังที่ทำให้มันสามารถแสดงพฤติกรรมและการตอบสนองที่ซับซ้อนได้มากกว่าสัตว์ไม่มีกระดูกสันหลังส่วนใหญ่?',
+        answers: ['การมีเซลล์ปฏิบัติต่างๆ แยกขาดออกจากกันโดยไม่พึ่งพาฮอร์โมน', 'การมีปริมาณเส้นประสาทตามขวางมากกว่าปมประสาท', 'ระบบประสาทส่วนกลาง (สมองและไขสันหลัง) มีการพัฒนาทางโครงสร้างที่ซับซ้อนและมีเซลล์ประสาทจำนวนมหาศาลในการประมวลผลข้อมูล', 'การเปลี่ยนโครงสร้างไขสันหลังไปอยู่ทางด้านท้องเพื่อรับแรงกระแทก'],
+        correct: 2,
+        explanation: 'สัตว์มีกระดูกสันหลังมีวิวัฒนาการของสมองและไขสันหลังที่ก้าวหน้ามาก มีการแบ่งพู (Lobes) ทำหน้าที่เฉพาะด้าน มีเซลล์ประสาทประสานงานจำนวนมาก ทำให้สามารถเรียนรู้ จดจำ และแสดงพฤติกรรมที่ซับซ้อนได้ดีกว่า'
+      },
+      {
+        question: 'ศูนย์กลางของระบบประสาทในสัตว์มีกระดูกสันหลัง (สมองและไขสันหลัง) ทำหน้าที่สำคัญในข้อใดนอกเหนือจากการสั่งการเคลื่อนไหว?',
+        answers: ['ควบคุมการพัดโบกของซีเลียทั่วร่างกาย', 'รักษาดุลยภาพของร่างกาย (Homeostasis)', 'เปลี่ยนสิ่งเร้าภายในให้กลายเป็นสิ่งเร้าภายนอกร่างกาย', 'ผลิตเซลล์เม็ดเลือดแดงเข้าสู่กระแสเลือดโดยตรง'],
+        correct: 1,
+        explanation: 'สมองและไขสันหลังไม่เพียงแต่ควบคุมการรับความรู้สึกและการสั่งการกล้ามเนื้อ แต่ยังมีหน้าที่สำคัญร่วมกับระบบต่อมไร้ท่อในการควบคุมและรักษาดุลยภาพต่างๆ ของร่างกาย (เช่น อุณหภูมิ ความเป็นกรด-เบส ความดันเลือด) ให้คงที่และปลอดภัยต่อชีวิต'
+      }
+    ];
+
+    const playerNameInput = document.getElementById('playerName');
+    const startButton = document.getElementById('startButton');
+    const entryStatus = document.getElementById('entryStatus');
+
+    const gameSection = document.getElementById('gameSection');
+    const questionText = document.getElementById('questionText');
+    const answersContainer = document.getElementById('answersContainer');
+    const currentPlayer = document.getElementById('currentPlayer');
+    const currentScore = document.getElementById('currentScore');
+    const currentIndex = document.getElementById('currentIndex');
+    const totalQuestions = document.getElementById('totalQuestions');
+    const timerText = document.getElementById('timerText');
+    const progressFill = document.getElementById('progressFill');
+    const nextButton = document.getElementById('nextButton');
+    const feedbackText = document.getElementById('feedbackText');
+    const explanationText = document.getElementById('explanationText');
+    const statusPanel = document.getElementById('statusPanel');
+
+    const summarySection = document.getElementById('summarySection');
+    const summaryText = document.getElementById('summaryText');
+    const restartButton = document.getElementById('restartButton');
+
+    const leaderboard = document.getElementById('leaderboard');
+    const saveFileButton = document.getElementById('saveFileButton');
+    const loadFileButton = document.getElementById('loadFileButton');
+    const filePicker = document.getElementById('filePicker');
+
+    let currentQuestion = 0;
+    let score = 0;
+    let playerName = '';
+    let selectedAnswer = null;
+    let timerValue = 0;
+    let timerInterval = null;
+    let totalElapsedTime = 0;
+    let audioContext = null;
+
+    totalQuestions.textContent = quizData.length;
+
+    function loadLeaderboard() {
+      const raw = localStorage.getItem('quizLeaderboard');
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    function saveLeaderboard(entries) {
+      localStorage.setItem('quizLeaderboard', JSON.stringify(entries));
+    }
+
+    async function saveLeaderboardFile() {
+      const entries = loadLeaderboard();
+      const blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
+      const fileName = `leaderboard-${new Date().toISOString().slice(0, 10)}.json`;
+
+      if (window.showSaveFilePicker) {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    async function loadLeaderboardFile() {
+      if (window.showOpenFilePicker) {
+        const [handle] = await window.showOpenFilePicker({
+          multiple: false,
+          types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }],
+        });
+        const file = await handle.getFile();
+        const text = await file.text();
+        mergeLeaderboardFileData(text);
+      } else {
+        filePicker.click();
+      }
+    }
+
+    function mergeLeaderboardFileData(text) {
+      try {
+        const imported = JSON.parse(text);
+        if (!Array.isArray(imported)) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
+
+        const existing = loadLeaderboard();
+        const uniqueMap = new Map();
+        [...existing, ...imported].forEach((entry) => {
+          const key = entry.name?.toLowerCase().trim();
+          if (!key) return;
+          const current = uniqueMap.get(key);
+          if (
+            !current ||
+            entry.score > current.score ||
+            (entry.score === current.score && entry.time < current.time)
+          ) {
+            uniqueMap.set(key, { name: entry.name.trim(), score: entry.score, time: entry.time });
+          }
+        });
+
+        const merged = Array.from(uniqueMap.values()).sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          return a.time - b.time;
+        });
+        saveLeaderboard(merged);
+        renderLeaderboard();
+        alert('นำเข้าคะแนนจากไฟล์เรียบร้อยแล้ว');
+      } catch (error) {
+        alert('ไม่สามารถโหลดไฟล์คะแนนได้: ' + error.message);
+      }
+    }
+
+    function initAudio() {
+      if (audioContext) return;
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playSound(type) {
+      if (!audioContext) initAudio();
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+      gain.gain.setValueAtTime(0.18, audioContext.currentTime);
+
+      if (type === 'correct') {
+        oscillator.frequency.value = 440;
+      } else if (type === 'click') {
+        oscillator.frequency.value = 620;
+        gain.gain.setValueAtTime(0.12, audioContext.currentTime);
+      } else {
+        oscillator.frequency.value = 220;
+      }
+
+      oscillator.type = 'triangle';
+      oscillator.start();
+      gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + (type === 'click' ? 0.12 : 0.25));
+      oscillator.stop(audioContext.currentTime + (type === 'click' ? 0.12 : 0.25));
+    }
+
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateTimerDisplay() {
+      timerText.textContent = formatTime(timerValue);
+      timerText.classList.toggle('timer-low', timerValue <= 10);
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerValue = 30;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        timerValue -= 1;
+        updateTimerDisplay();
+        if (timerValue <= 0) {
+          stopTimer();
+          timeUp();
+        }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function timeUp() {
+      const item = quizData[currentQuestion];
+      totalElapsedTime += 30;
+      feedbackText.textContent = 'เวลาหมด!';
+      explanationText.textContent = `คำตอบที่ถูกคือ: ${item.answers[item.correct]}`;
+      Array.from(answersContainer.children).forEach((btn, btnIndex) => {
+        btn.disabled = true;
+        if (btnIndex === item.correct) btn.classList.add('correct');
+      });
+      nextButton.disabled = false;
+      if (audioContext) playSound('wrong');
+    }
+
+    function renderLeaderboard() {
+      const entries = loadLeaderboard().sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.time - b.time;
+      }).slice(0, 10);
+      leaderboard.innerHTML = '';
+
+      if (entries.length === 0) {
+        const emptyLine = document.createElement('div');
+        emptyLine.className = 'score-row';
+        emptyLine.textContent = 'ยังไม่มีคะแนนในขณะนี้';
+        leaderboard.appendChild(emptyLine);
+        return;
+      }
+
+      const medals = ['🥇', '🥈', '🥉'];
+      entries.forEach((entry, index) => {
+        const row = document.createElement('div');
+        row.className = 'score-row';
+        const icon = medals[index] || '';
+        row.innerHTML = `<span>${icon} ${entry.name} <small class="leader-time">${entry.time}s</small></span><strong>${entry.score}</strong>`;
+        leaderboard.appendChild(row);
+      });
+    }
+
+    function startGame() {
+      playerName = playerNameInput.value.trim();
+      if (!playerName) {
+        entryStatus.textContent = 'กรุณากรอกชื่อก่อนเริ่มเกม';
+        return;
+      }
+      entryStatus.textContent = '';
+      currentPlayer.textContent = playerName;
+      score = 0;
+      currentQuestion = 0;
+      totalElapsedTime = 0;
+      selectedAnswer = null;
+      currentScore.textContent = score;
+      currentIndex.textContent = currentQuestion + 1;
+      document.getElementById('entrySection').classList.add('hidden');
+      gameSection.classList.remove('hidden');
+      statusPanel.classList.remove('hidden');
+      summarySection.classList.add('hidden');
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      const item = quizData[currentQuestion];
+      questionText.textContent = item.question;
+      answersContainer.innerHTML = '';
+      feedbackText.textContent = '';
+      explanationText.textContent = '';
+      nextButton.disabled = true;
+      selectedAnswer = null;
+
+      item.answers.forEach((answer, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'answer-button fade-in';
+        btn.textContent = answer;
+        btn.addEventListener('click', () => chooseAnswer(index, btn));
+        answersContainer.appendChild(btn);
+      });
+
+      currentIndex.textContent = currentQuestion + 1;
+      totalQuestions.textContent = quizData.length;
+      const percent = Math.round((currentQuestion / quizData.length) * 100);
+      progressFill.style.width = `${percent}%`;
+      startTimer();
+    }
+
+    function chooseAnswer(index, button) {
+      if (selectedAnswer !== null) return;
+      selectedAnswer = index;
+      stopTimer();
+      const item = quizData[currentQuestion];
+      const correctIndex = item.correct;
+      const answerButtons = Array.from(answersContainer.children);
+
+      const baseScore = 10;
+      const timeBonus = Math.max(0, timerValue);
+      const elapsed = 30 - timerValue;
+      totalElapsedTime += elapsed;
+      if (index === correctIndex) {
+        score += baseScore + timeBonus;
+        currentScore.textContent = score;
+        feedbackText.textContent = `ถูกต้อง! +${baseScore} คะแนน +โบนัสเวลา ${timeBonus} คะแนน`;
+        button.classList.add('correct');
+        if (audioContext) playSound('correct');
+      } else {
+        feedbackText.textContent = `ผิด! คำตอบที่ถูกคือ: ${item.answers[correctIndex]}`;
+        button.classList.add('wrong');
+        answerButtons[correctIndex].classList.add('correct');
+        if (audioContext) playSound('wrong');
+      }
+
+      explanationText.textContent = item.explanation;
+      answerButtons.forEach((btn) => {
+        btn.disabled = true;
+      });
+
+      nextButton.disabled = false;
+    }
+
+    function finishGame() {
+      stopTimer();
+      const leaderboardEntries = loadLeaderboard();
+      leaderboardEntries.push({ name: playerName, score, time: totalElapsedTime });
+      const uniqueMap = new Map();
+      leaderboardEntries.forEach(entry => {
+        const key = entry.name.toLowerCase().trim();
+        const existing = uniqueMap.get(key);
+        if (!existing || entry.score > existing.score || (entry.score === existing.score && entry.time < existing.time)) {
+          uniqueMap.set(key, entry);
+        }
+      });
+      const merged = Array.from(uniqueMap.values());
+      merged.sort((a, b) => b.score - a.score);
+      saveLeaderboard(merged);
+      renderLeaderboard();
+
+      gameSection.classList.add('hidden');
+      summarySection.classList.remove('hidden');
+      statusPanel.classList.add('hidden');
+      summaryText.innerHTML = `ขอบคุณ ${playerName}!<br>คุณทำคะแนนได้ ${score} คะแนน จากทั้งหมด ${quizData.length} ข้อ.<br>เวลารวม: ${formatTime(totalElapsedTime)}`;
+    }
+
+    function nextQuestion() {
+      currentQuestion += 1;
+      if (currentQuestion >= quizData.length) {
+        finishGame();
+      } else {
+        renderQuestion();
+      }
+    }
+
+    function restartGame() {
+      gameSection.classList.remove('hidden');
+      summarySection.classList.add('hidden');
+      score = 0;
+      currentQuestion = 0;
+      currentScore.textContent = score;
+      currentIndex.textContent = currentQuestion + 1;
+      renderQuestion();
+    }
+
+    startButton.addEventListener('click', () => {
+      playSound('click');
+      startGame();
+    });
+    nextButton.addEventListener('click', () => {
+      playSound('click');
+      nextQuestion();
+    });
+    restartButton.addEventListener('click', () => {
+      playSound('click');
+      restartGame();
+    });
+    playerNameInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        playSound('click');
+        startGame();
+      }
+    });
+
+    saveFileButton.addEventListener('click', saveLeaderboardFile);
+    loadFileButton.addEventListener('click', loadLeaderboardFile);
+    filePicker.addEventListener('change', async (event) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        const text = await file.text();
+        mergeLeaderboardFileData(text);
+      }
+      filePicker.value = '';
+    });
+
+    renderLeaderboard();
+  </script>
+</body>
+</html>
