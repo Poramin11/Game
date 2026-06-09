@@ -418,11 +418,15 @@
       <h2>🏅 กระดานคะแนน</h2>
       <div class="scoreboard" id="leaderboard"></div>
       <div class="file-actions">
-        <button id="saveFileButton" class="control-button">💾 บันทึกคะแนนเป็นไฟล์</button>
-        <button id="loadFileButton" class="control-button">📂 โหลดคะแนนจากไฟล์</button>
+        <button id="openSheetButton" class="control-button">📄 เปิด Google Sheet</button>
       </div>
-      <input type="file" id="filePicker" class="hidden" accept="application/json" />
-      <div class="footer">คะแนนจะถูกเก็บไว้บนเครื่องของคุณ (Local Storage) และสามารถบันทึก/โหลดเป็นไฟล์ JSON ได้</div>
+      <div id="linkContainer" class="status hidden" style="margin-top: 12px; word-break: break-all;"></div>
+      <div class="status" id="autoSaveStatus">คะแนนจะถูกส่งไปยัง Google Sheet โดยอัตโนมัติเมื่อจบเกม</div>
+      <div class="file-actions" style="margin-top: 12px; gap: 8px; align-items: center;">
+        <input type="password" id="resetPassword" placeholder="รหัสผ่านล้างคะแนน" style="flex:1; min-width:220px; border:1px solid rgba(255,255,255,0.2); border-radius:14px; padding:14px 16px; background:rgba(255,255,255,0.95); color:#0f1f3f;" />
+        <button id="clearLeaderboardButton" class="control-button" style="background: linear-gradient(135deg, #ff5f6d 0%, #ff8f61 100%);">🧹 ล้างคะแนน</button>
+      </div>
+      <div class="footer">คะแนนจะถูกเก็บไว้บนเครื่องของคุณ (Local Storage) และส่งไปยัง Google Sheet โดยอัตโนมัติเมื่อจบเกม</div>
     </div>
   </div>
 
@@ -543,9 +547,13 @@
     const restartButton = document.getElementById('restartButton');
 
     const leaderboard = document.getElementById('leaderboard');
-    const saveFileButton = document.getElementById('saveFileButton');
-    const loadFileButton = document.getElementById('loadFileButton');
-    const filePicker = document.getElementById('filePicker');
+    const openSheetButton = document.getElementById('openSheetButton');
+    const clearLeaderboardButton = document.getElementById('clearLeaderboardButton');
+    const resetPassword = document.getElementById('resetPassword');
+    const linkContainer = document.getElementById('linkContainer');
+    const autoSaveStatus = document.getElementById('autoSaveStatus');
+
+    const leaderboardResetPassword = '110651';
 
     let currentQuestion = 0;
     let score = 0;
@@ -554,6 +562,8 @@
     let timerValue = 0;
     let timerInterval = null;
     let totalElapsedTime = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
     let audioContext = null;
 
     totalQuestions.textContent = quizData.length;
@@ -567,74 +577,48 @@
       localStorage.setItem('quizLeaderboard', JSON.stringify(entries));
     }
 
-    async function saveLeaderboardFile() {
-      const entries = loadLeaderboard();
-      const blob = new Blob([JSON.stringify(entries, null, 2)], { type: 'application/json' });
-      const fileName = `leaderboard-${new Date().toISOString().slice(0, 10)}.json`;
-
-      if (window.showSaveFilePicker) {
-        const handle = await window.showSaveFilePicker({
-          suggestedName: fileName,
-          types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    function clearLeaderboard() {
+      const password = resetPassword.value.trim();
+      if (!password) {
+        alert('กรุณากรอกรหัสผ่านก่อนล้างคะแนน');
+        return;
       }
+      if (password !== leaderboardResetPassword) {
+        alert('รหัสผ่านไม่ถูกต้อง');
+        return;
+      }
+      localStorage.removeItem('quizLeaderboard');
+      renderLeaderboard();
+      resetPassword.value = '';
+      alert('ล้างฐานข้อมูลคะแนนเรียบร้อยแล้ว');
     }
 
-    async function loadLeaderboardFile() {
-      if (window.showOpenFilePicker) {
-        const [handle] = await window.showOpenFilePicker({
-          multiple: false,
-          types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }],
-        });
-        const file = await handle.getFile();
-        const text = await file.text();
-        mergeLeaderboardFileData(text);
-      } else {
-        filePicker.click();
-      }
+    const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/1xthTAhD7_JZNK7t5-C93gJgn-37-2e7wJEjcpaPR9Zo/edit?usp=drivesdk';
+    const sheetAppendUrl = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+
+    function openGoogleSheet() {
+      window.open(googleSheetUrl, '_blank');
     }
 
-    function mergeLeaderboardFileData(text) {
+    async function submitScoreToSheet(scoreEntry) {
+      if (!sheetAppendUrl || sheetAppendUrl.includes('YOUR_SCRIPT_ID')) {
+        autoSaveStatus.textContent = 'ยังไม่ได้ตั้งค่า endpoint สำหรับส่งคะแนนไปยัง Google Sheet';
+        return;
+      }
       try {
-        const imported = JSON.parse(text);
-        if (!Array.isArray(imported)) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
-
-        const existing = loadLeaderboard();
-        const uniqueMap = new Map();
-        [...existing, ...imported].forEach((entry) => {
-          const key = entry.name?.toLowerCase().trim();
-          if (!key) return;
-          const current = uniqueMap.get(key);
-          if (
-            !current ||
-            entry.score > current.score ||
-            (entry.score === current.score && entry.time < current.time)
-          ) {
-            uniqueMap.set(key, { name: entry.name.trim(), score: entry.score, time: entry.time });
-          }
+        const response = await fetch(sheetAppendUrl, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(scoreEntry),
         });
-
-        const merged = Array.from(uniqueMap.values()).sort((a, b) => {
-          if (b.score !== a.score) return b.score - a.score;
-          return a.time - b.time;
-        });
-        saveLeaderboard(merged);
-        renderLeaderboard();
-        alert('นำเข้าคะแนนจากไฟล์เรียบร้อยแล้ว');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        autoSaveStatus.textContent = `บันทึกคะแนนไปยัง Google Sheet เรียบร้อยแล้ว (${result.status || 'สำเร็จ'})`;
+        linkContainer.classList.remove('hidden');
+        linkContainer.innerHTML = `ดูคะแนนได้ที่ <a href="${googleSheetUrl}" target="_blank" style="color:#ffd664; text-decoration:underline;">Google Sheet</a>`;
       } catch (error) {
-        alert('ไม่สามารถโหลดไฟล์คะแนนได้: ' + error.message);
+        autoSaveStatus.textContent = 'ไม่สามารถส่งคะแนนไปยัง Google Sheet ได้: ' + error.message;
       }
     }
 
@@ -701,6 +685,7 @@
     function timeUp() {
       const item = quizData[currentQuestion];
       totalElapsedTime += 30;
+      wrongCount += 1;
       feedbackText.textContent = 'เวลาหมด!';
       explanationText.textContent = `คำตอบที่ถูกคือ: ${item.answers[item.correct]}`;
       Array.from(answersContainer.children).forEach((btn, btnIndex) => {
@@ -731,7 +716,8 @@
         const row = document.createElement('div');
         row.className = 'score-row';
         const icon = medals[index] || '';
-        row.innerHTML = `<span>${icon} ${entry.name} <small class="leader-time">${entry.time}s</small></span><strong>${entry.score}</strong>`;
+        const correct = Number.isInteger(entry.correct) ? entry.correct : 0;
+        row.innerHTML = `<span>${icon} ${entry.name} <small class="leader-time">${entry.time}s | ถูก ${correct}/15</small></span><strong>${entry.score}</strong>`;
         leaderboard.appendChild(row);
       });
     }
@@ -747,6 +733,8 @@
       score = 0;
       currentQuestion = 0;
       totalElapsedTime = 0;
+      correctCount = 0;
+      wrongCount = 0;
       selectedAnswer = null;
       currentScore.textContent = score;
       currentIndex.textContent = currentQuestion + 1;
@@ -777,7 +765,7 @@
 
       currentIndex.textContent = currentQuestion + 1;
       totalQuestions.textContent = quizData.length;
-      const percent = Math.round((currentQuestion / quizData.length) * 100);
+      const percent = Math.round(((currentQuestion + 1) / quizData.length) * 100);
       progressFill.style.width = `${percent}%`;
       startTimer();
     }
@@ -796,11 +784,13 @@
       totalElapsedTime += elapsed;
       if (index === correctIndex) {
         score += baseScore + timeBonus;
+        correctCount += 1;
         currentScore.textContent = score;
         feedbackText.textContent = `ถูกต้อง! +${baseScore} คะแนน +โบนัสเวลา ${timeBonus} คะแนน`;
         button.classList.add('correct');
         if (audioContext) playSound('correct');
       } else {
+        wrongCount += 1;
         feedbackText.textContent = `ผิด! คำตอบที่ถูกคือ: ${item.answers[correctIndex]}`;
         button.classList.add('wrong');
         answerButtons[correctIndex].classList.add('correct');
@@ -818,7 +808,7 @@
     function finishGame() {
       stopTimer();
       const leaderboardEntries = loadLeaderboard();
-      leaderboardEntries.push({ name: playerName, score, time: totalElapsedTime });
+      leaderboardEntries.push({ name: playerName, score, time: totalElapsedTime, correct: correctCount });
       const uniqueMap = new Map();
       leaderboardEntries.forEach(entry => {
         const key = entry.name.toLowerCase().trim();
@@ -832,10 +822,13 @@
       saveLeaderboard(merged);
       renderLeaderboard();
 
+      const scoreEntry = { name: playerName, score, time: totalElapsedTime, correct: correctCount };
+      submitScoreToSheet(scoreEntry);
+
       gameSection.classList.add('hidden');
       summarySection.classList.remove('hidden');
       statusPanel.classList.add('hidden');
-      summaryText.innerHTML = `ขอบคุณ ${playerName}!<br>คุณทำคะแนนได้ ${score} คะแนน จากทั้งหมด ${quizData.length} ข้อ.<br>เวลารวม: ${formatTime(totalElapsedTime)}`;
+      summaryText.innerHTML = `ขอบคุณ ${playerName}!<br>คุณทำครบ ${quizData.length} ข้อ ผ่าน ${correctCount} ข้อ ไม่ผ่าน ${wrongCount} ข้อ<br>ได้ ${score} คะแนน<br>ใช้เวลา ${formatTime(totalElapsedTime)}`;
     }
 
     function nextQuestion() {
@@ -852,6 +845,8 @@
       summarySection.classList.add('hidden');
       score = 0;
       currentQuestion = 0;
+      correctCount = 0;
+      wrongCount = 0;
       currentScore.textContent = score;
       currentIndex.textContent = currentQuestion + 1;
       renderQuestion();
@@ -876,16 +871,8 @@
       }
     });
 
-    saveFileButton.addEventListener('click', saveLeaderboardFile);
-    loadFileButton.addEventListener('click', loadLeaderboardFile);
-    filePicker.addEventListener('change', async (event) => {
-      const file = event.target.files?.[0];
-      if (file) {
-        const text = await file.text();
-        mergeLeaderboardFileData(text);
-      }
-      filePicker.value = '';
-    });
+openSheetButton.addEventListener('click', openGoogleSheet);
+    clearLeaderboardButton.addEventListener('click', clearLeaderboard);
 
     renderLeaderboard();
   </script>
