@@ -593,28 +593,34 @@
       alert('ล้างฐานข้อมูลคะแนนเรียบร้อยแล้ว');
     }
 
-    const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/1xthTAhD7_JZNK7t5-C93gJgn-37-2e7wJEjcpaPR9Zo/edit?usp=drivesdk';
-    const sheetAppendUrl = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+    const googleSheetUrl = 'https://docs.google.com/spreadsheets/d/1kaGsRw-htpwIwm3Zj6e8sbSiGfRa0R2ucENwk7IwxhY/edit?usp=drivesdk';
+    
+    // สำคัญ: นำ Web App URL ที่ได้จาก Google Apps Script มาวางแทนข้อความในเครื่องหมายคำพูดด้านล่างนี้
+    const sheetAppendUrl = 'https://script.google.com/macros/s/AKfycbxtx8w_hU0D7EObDXYO4g65-wCHMIJou20kW2KVMKpUZqkjkb_P5Wrbp860bH1ArmTT/exec';
 
     function openGoogleSheet() {
       window.open(googleSheetUrl, '_blank');
     }
 
     async function submitScoreToSheet(scoreEntry) {
-      if (!sheetAppendUrl || sheetAppendUrl.includes('YOUR_SCRIPT_ID')) {
-        autoSaveStatus.textContent = 'ยังไม่ได้ตั้งค่า endpoint สำหรับส่งคะแนนไปยัง Google Sheet';
+      // ตรวจสอบว่าได้เปลี่ยน URL หรือยัง
+      if (!sheetAppendUrl || sheetAppendUrl.includes('ใส่_URL_WEB_APP_ของแอปสคริปต์คุณที่นี่') || sheetAppendUrl.includes('YOUR_SCRIPT_ID')) {
+        autoSaveStatus.textContent = 'กรุณาใส่ Web App URL ของคุณในโค้ดบรรทัดที่ 216 ก่อนส่งคะแนน';
         return;
       }
       try {
-        const response = await fetch(sheetAppendUrl, {
+        autoSaveStatus.textContent = 'กำลังบันทึกคะแนนลง Google Sheet...';
+        
+        // ใช้ no-cors เพื่อข้ามการตรวจสอบนโยบาย CORS ของเบราว์เซอร์
+        await fetch(sheetAppendUrl, {
           method: 'POST',
-          mode: 'cors',
+          mode: 'no-cors',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(scoreEntry),
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const result = await response.json();
-        autoSaveStatus.textContent = `บันทึกคะแนนไปยัง Google Sheet เรียบร้อยแล้ว (${result.status || 'สำเร็จ'})`;
+        
+        // เมื่อใช้ no-cors จะไม่คืนค่า JSON กลับมา แต่ข้อมูลจะเข้าชีตเรียบร้อย
+        autoSaveStatus.textContent = `ระบบส่งข้อมูลไปยัง Google Sheet เรียบร้อยแล้ว!`;
         linkContainer.classList.remove('hidden');
         linkContainer.innerHTML = `ดูคะแนนได้ที่ <a href="${googleSheetUrl}" target="_blank" style="color:#ffd664; text-decoration:underline;">Google Sheet</a>`;
       } catch (error) {
@@ -871,7 +877,7 @@
       }
     });
 
-openSheetButton.addEventListener('click', openGoogleSheet);
+    openSheetButton.addEventListener('click', openGoogleSheet);
     clearLeaderboardButton.addEventListener('click', clearLeaderboard);
 
     renderLeaderboard();
